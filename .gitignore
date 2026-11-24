@@ -7,3 +7,4 @@ worlds/.*
 controllers/mcp_bridge/
 controllers/mcp_robot/
 .DS_Store
+site/.build.log

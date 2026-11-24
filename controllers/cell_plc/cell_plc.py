@@ -14,6 +14,7 @@ Clavier (cliquer dans la vue 3D) :
 """
 import json
 import math
+import sys
 
 from controller import DistanceSensor, Supervisor
 
@@ -89,7 +90,9 @@ class CellPLC(Supervisor):
                 a = yaw + 1.65 / 2 - k * 1.65 / 30
                 rays.append((self.ds["%s_%02d" % (nm, k)], a))
             self.lidars.append((rays, px, py, yaw))
-        self.display = self.getDevice("IHM")
+        # --sans-ihm : pas de surimpression ni d'écran (enregistrement des vidéos du README)
+        self.show_hmi = "--sans-ihm" not in sys.argv
+        self.display = self.getDevice("IHM") if self.show_hmi else None
         self.tx = self.getDevice("plc_tx")
         self.rx = self.getDevice("robot_rx")
         self.rx.enable(self.dt_ms)
@@ -262,12 +265,24 @@ class CellPLC(Supervisor):
             self.belts[i] = (tt, v, L, off)
             tt.getField("translation").setSFVec2f([off, 0])
 
+    def obtain(self, d, vrml, pos, rot=None):
+        """Réutilise le noeud DEF `d` s'il existe déjà (réservoir pré-créé pour l'export HTML5), sinon l'importe."""
+        n = self.getFromDef(d)
+        if n is None:
+            self.root.importMFNodeFromString(-1, vrml)
+            return self.getFromDef(d)
+        n.getField("translation").setSFVec3f(list(pos))
+        if rot is not None:
+            n.getField("rotation").setSFRotation(rot)
+        return n
+
     def spawn_box(self):
         self.box_count += 1
         d = "COLIS_%d" % self.box_count
-        self.root.importMFNodeFromString(-1, 'DEF %s CardboardBox { translation %g %g %g name "colis %d" size %g %g %g }'
-                                         % (d, X_SPAWN, CONV_Y, CONV_Z + BOX[2] / 2, self.box_count, *BOX))
-        self.boxes.append(dict(d=d, node=self.getFromDef(d), x=X_SPAWN))
+        pos = (X_SPAWN, CONV_Y, CONV_Z + BOX[2] / 2)
+        node = self.obtain(d, 'DEF %s CardboardBox { translation %g %g %g name "colis %d" size %g %g %g }'
+                           % (d, *pos, self.box_count, *BOX), pos, [0, 0, 1, 0])
+        self.boxes.append(dict(d=d, node=node, x=X_SPAWN))
 
     def plant_boxes(self):
         if not self.running():
@@ -349,15 +364,14 @@ class CellPLC(Supervisor):
             return
         self.load_count += 1
         d = "PALETTE_%d" % self.load_count
-        self.root.importMFNodeFromString(-1, 'DEF %s WoodenPallet { translation %g %g %g rotation 0 0 1 1.5708 '
-                                         'name "palette %d" }' % (d, PAL_X, ST["P0"], PAL_Z, self.load_count))
-        self.loads.append(Load(self.load_count, self.getFromDef(d)))
+        pos = (PAL_X, ST["P0"], PAL_Z)
+        node = self.obtain(d, 'DEF %s WoodenPallet { translation %g %g %g rotation 0 0 1 1.5708 name "palette %d" }'
+                           % (d, *pos, self.load_count), pos, [0, 0, 1, 1.5708])
+        self.loads.append(Load(self.load_count, node))
         self.mag_n -= 1
         if self.mag_n <= 1:
             self.mag_n = 10
             self.log("Magasin palettes vides réapprovisionné (10 palettes)")
-        m = self.getFromDef("MAGASIN")
-        m.getField("palletNumber").setSFInt32(self.mag_n)
         self.log("Palette vide n°%d distribuée par le magasin" % self.load_count)
 
     def plant_pallets(self):
@@ -462,11 +476,10 @@ class CellPLC(Supervisor):
     def start_wrap(self, l):
         top = PAL_H + BOX[2] * LAYERS
         d = "FILM_%d" % l.idx
-        self.root.importMFNodeFromString(-1, 'DEF %s Pose { translation %g %g %g children [ Shape { appearance '
-                                         'PBRAppearance { baseColor 0.85 0.9 0.95 transparency 0.55 roughness 0.1 '
-                                         'metalness 0 } geometry Box { size 0.82 1.22 0.05 } } ] }'
-                                         % (d, l.x, l.y, l.z + 0.035))
-        l.film = self.getFromDef(d)
+        pos = (l.x, l.y, l.z + 0.035)
+        l.film = self.obtain(d, 'DEF %s Transform { translation %g %g %g scale 1 1 0.05 children [ Shape { appearance '
+                             'PBRAppearance { baseColor 0.85 0.9 0.95 transparency 0.55 roughness 0.1 metalness 0 } '
+                             'geometry Box { size 0.82 1.22 1 } } ] }' % (d, *pos), pos)
         self.wrap = dict(load=l, t=0.0, ang=0.0, top=top, zc=PAL_Z + 0.25)
         self.log("Banderolage palette n°%d démarré" % l.idx)
 
@@ -491,8 +504,7 @@ class CellPLC(Supervisor):
             film_h = max(0.05, min(w["top"] + 0.02, w["zc"] + 0.25 - PAL_Z))
             if abs(film_h - l.film_h) > 1e-3:
                 l.film_h = film_h
-                box = l.film.getField("children").getMFNode(0).getField("geometry").getSFNode()
-                box.getField("size").setSFVec3f([0.82, 1.22, film_h])
+                l.film.getField("scale").setSFVec3f([1, 1, film_h])
         else:
             # arrêt plateau indexé (multiple de 2π) pour réaligner les chaînes, puis retour chariot en bas
             a = w["ang"] % (2 * math.pi)
@@ -750,7 +762,8 @@ class CellPLC(Supervisor):
             self.plant_door()
             if frame % 4 == 0:
                 self.signals()
-                self.hmi()
+                if self.show_hmi:
+                    self.hmi()
 
 
 CellPLC().run()

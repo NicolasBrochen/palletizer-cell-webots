@@ -3,6 +3,26 @@
 Cellule installée dans un hangar logistique. Un robot palettiseur à ventouses prend les colis arrivant par convoyeur et les pose sur une palette Euro.
 Un sas forme les lots. La palette pleine est banderolée, puis un chariot élévateur la prend et la dépose dans la zone de stockage du hangar.
 
+**▶ [Animation 3D interactive dans le navigateur](https://nicolasbrochen.github.io/palletizer-cell-webots/)** (GitHub Pages, sans installer Webots) · [vidéo d'un cycle complet, accélérée ×4 (MP4)](docs/palettisation.mp4)
+
+[![Un cycle complet : formation des lots, palettisation, banderolage, évacuation et stockage par le chariot](docs/palettisation.gif)](docs/palettisation.mp4)
+
+| Prise d'un lot par le préhenseur à ventouses | Banderoleuse à plateau tournant |
+|---|---|
+| [![Prise d'un lot](docs/prehenseur.jpg)](docs/prise_lot.mp4) | [![Banderolage](docs/banderoleuse.jpg)](docs/banderolage.mp4) |
+
+## Visualiser sans Webots
+
+- **Animation 3D interactive** : [nicolasbrochen.github.io/palletizer-cell-webots](https://nicolasbrochen.github.io/palletizer-cell-webots/).
+  C'est un export HTML5 de Webots d'un cycle complet (3 min 38 s simulées) : on peut tourner autour de la scène, zoomer
+  et avancer dans le temps. Les fichiers sont dans [`site/`](site/), publiés sur GitHub Pages depuis la branche `gh-pages`
+  (`git subtree push --prefix site origin gh-pages`).
+- **Vidéos** : [`docs/`](docs/) contient le cycle complet et deux gros plans (prise d'un lot, banderolage).
+- **Reconstruire** : `tools/build_site.sh` refait l'animation, et `tools/build_media.sh` refait les vidéos, le GIF et les images
+  (il faut un affichage, car Webots fait le rendu des vidéos).
+
+## Lancer dans Webots
+
 ```
 webots worlds/palettisation.wbt
 ```
@@ -107,7 +127,10 @@ controllers/
       └─ partie OPÉRATIVE simulée : bandes, butée, chaînes palettes, plateau de banderolage, chariot
   palletizer_robot/palletizer_robot.py contrôleur du robot (trajectoires, vide/ventouses)
   palletizer_robot/irb4600_kin.py      IK analytique de l'IRB 4600, outil vertical, sans dépendance
+  animation_recorder/, media_recorder/  enregistreurs (animation HTML5, vidéos du README)
 tools/gen_world.py                     génère worlds/palettisation.wbt (implantation paramétrée)
+tools/build_site.sh                    animation 3D HTML5 -> site/ (GitHub Pages)
+tools/build_media.sh                   vidéos, GIF et images -> docs/
 ```
 
 L'automate et le robot communiquent en JSON via Emitter/Receiver (canaux 1 et 2).
