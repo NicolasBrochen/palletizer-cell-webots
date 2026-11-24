@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.bak
+# mondes temporaires / sauvegardes écrits par Webots et webotMCP
+worlds/.*
+# contrôleurs copiés dans le projet par webotMCP (installation auto du bridge)
+controllers/mcp_bridge/
+controllers/mcp_robot/
+.DS_Store
