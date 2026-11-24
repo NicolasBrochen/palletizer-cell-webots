@@ -20,6 +20,11 @@ Un sas forme les lots. La palette pleine est banderolée, puis un chariot élév
 - **Vidéos** : [`docs/`](docs/) contient le cycle complet et deux gros plans (prise d'un lot, banderolage).
 - **Reconstruire** : `tools/build_site.sh` refait l'animation, et `tools/build_media.sh` refait les vidéos, le GIF et les images
   (il faut un affichage, car Webots fait le rendu des vidéos).
+  Sous WSL, les scripts utilisent automatiquement **Webots Windows** s'il est installé avec un Python Windows
+  (`winget install -e --id Python.Python.3.12`). Le rendu passe alors directement par le GPU, sans la couche WSLg :
+  sur une machine avec GPU NVIDIA, un essai de 45 s simulées est passé de 26 s à 11 s.
+  Le projet est recopié dans `%LOCALAPPDATA%\Temp\palettiseur-build`. `WEBOTS_MODE=linux` force le Webots Linux
+  (voir [`tools/webots_env.sh`](tools/webots_env.sh)).
 
 ## Lancer dans Webots
 

@@ -8,28 +8,31 @@
 #   tools/build_media.sh
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-WEBOTS=${WEBOTS:-webots}
-tmpd=$(mktemp -d)
-world="$ROOT/worlds/.media_record.wbt"
+. "$ROOT/tools/webots_env.sh"     # Webots Windows si disponible (WEBOTS_MODE=linux pour forcer Linux)
+prepare_run_root
+tmpd="$RUN_ROOT/.media_tmp"
+rm -rf "$tmpd"; mkdir -p "$tmpd"
+T=$(winpath "$tmpd")              # chemin des vidéos tel que Webots l'écrit
+world="$RUN_ROOT/worlds/.media_record.wbt"
 trap 'rm -rf "$tmpd" "$world"' EXIT
 run() {  # $1 = plans.json
   # vue nommée pour le recadrage, automate en mode --sans-ihm, écran du pupitre retiré
   sed -e 's/^Viewpoint {/DEF VIEWPOINT Viewpoint {/' -e 's/^  controller "cell_plc"/  controller "cell_plc"\n  controllerArgs [ "--sans-ihm" ]/' "$ROOT/worlds/palettisation.wbt" \
     | python3 -c "import re,sys; s=sys.stdin.read(); print(re.sub(r'Display \{.*?name \"IHM\".*?\n    \}', '', s, flags=re.S), end='')" > "$world"
   cat >> "$world" <<WBT
-Robot { name "media_recorder" controller "media_recorder" controllerArgs [ "$1" ] supervisor TRUE }
+Robot { name "media_recorder" controller "media_recorder" controllerArgs [ "$(winpath "$1")" ] supervisor TRUE }
 WBT
-  timeout 1800 "$WEBOTS" --batch --mode=fast --stdout --stderr "$world" > "$tmpd/webots.log" 2>&1 || true
+  run_webots "$world" --batch --mode=fast --stdout --stderr > "$tmpd/webots.log" 2>&1 || true
 }
 cat > "$tmpd/a.json" <<JSON
 {"width": 1280, "height": 720, "clips": [
-  {"file": "$tmpd/cycle.mp4", "start": 0, "end": 216, "accel": 4, "position": [-9.5, 6.8, 6.2], "look_at": [2.5, -4.0, 0.3]}
+  {"file": "$T/cycle.mp4", "start": 0, "end": 216, "accel": 4, "position": [-9.5, 6.8, 6.2], "look_at": [2.5, -4.0, 0.3]}
 ]}
 JSON
 cat > "$tmpd/b.json" <<JSON
 {"width": 1280, "height": 720, "clips": [
-  {"file": "$tmpd/prise.mp4", "start": 36.5, "end": 49.0, "accel": 1, "position": [-2.3, -4.3, 2.3], "look_at": [0.6, -0.9, 1.0]},
-  {"file": "$tmpd/bande.mp4", "start": 150.0, "end": 176.0, "accel": 2, "position": [-0.6, -6.6, 2.6], "look_at": [1.9, -2.8, 0.9]}
+  {"file": "$T/prise.mp4", "start": 36.5, "end": 49.0, "accel": 1, "position": [-2.3, -4.3, 2.3], "look_at": [0.6, -0.9, 1.0]},
+  {"file": "$T/bande.mp4", "start": 150.0, "end": 176.0, "accel": 2, "position": [-0.6, -6.6, 2.6], "look_at": [1.9, -2.8, 0.9]}
 ]}
 JSON
 run "$tmpd/a.json"
@@ -37,6 +40,22 @@ run "$tmpd/b.json"
 for f in cycle.mp4 prise.mp4 bande.mp4; do
   [ -s "$tmpd/$f" ] || { tail -30 "$tmpd/webots.log"; echo "✗ $f non enregistré"; exit 1; }
 done
+# contrôle qualité : sous Windows, la capture vidéo devient noire si la fenêtre de Webots est masquée
+# pendant l'enregistrement. Avec WEBOTS_SECOURS=linux, on refait alors les vidéos avec le Webots Linux (plus lent).
+noir=""
+for f in cycle.mp4 prise.mp4 bande.mp4; do
+  if ffmpeg -loglevel info -i "$tmpd/$f" -vf "blackdetect=d=0.5:pix_th=0.05" -an -f null - 2>&1 | grep -q black_start; then
+    noir="$noir $f"
+  fi
+done
+if [ -n "$noir" ]; then
+  if [ "$MODE" = windows ] && [ "${WEBOTS_SECOURS:-}" = linux ]; then
+    echo "⚠ images noires dans$noir (fenêtre Webots masquée ?) : nouvel enregistrement avec le Webots Linux"
+    rm -rf "$tmpd" "$world"; trap - EXIT
+    exec env WEBOTS_MODE=linux "$0" "$@"
+  fi
+  echo "✗ images noires dans$noir : garder la fenêtre Webots visible pendant l'enregistrement et relancer"; exit 1
+fi
 D="${OUT:-$ROOT/docs}"
 mkdir -p "$D"
 # réencodage H.264 compact (les fichiers bruts de Webots font plusieurs dizaines de Mo)

@@ -5,11 +5,12 @@
 # Publication sur GitHub Pages :   git subtree push --prefix site origin gh-pages
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-WEBOTS=${WEBOTS:-webots}
+. "$ROOT/tools/webots_env.sh"     # Webots Windows si disponible (WEBOTS_MODE=linux pour forcer Linux)
 DEBUT=${DEBUT:-0}
 FIN=${FIN:-218}
 if [ -z "${SANS_ENREGISTREMENT:-}" ]; then
-tmp="$ROOT/worlds/.site_record.wbt"
+prepare_run_root
+tmp="$RUN_ROOT/worlds/.site_record.wbt"
 # pas de 40 ms pour alléger l'animation (25 images/s)
 sed 's/basicTimeStep 16/basicTimeStep 40/' "$ROOT/worlds/palettisation.wbt" > "$tmp"
 # réservoir de noeuds pré-créés (hors champ) : une animation HTML5 n'exporte que les noeuds présents au départ
@@ -33,12 +34,17 @@ Robot {
   supervisor TRUE
 }
 WBT
-rm -rf "$ROOT"/site/palettisation.{html,css,json,w3d,jpg}
-timeout 1200 "$WEBOTS" --batch --mode=fast --minimize --stdout --stderr "$tmp" > "$ROOT/site/.build.log" 2>&1 || true
+rm -rf "$RUN_ROOT"/site/palettisation.{html,css,json,w3d,jpg}
+mkdir -p "$ROOT/site"
+run_webots "$tmp" --batch --mode=fast --minimize --stdout --stderr > "$ROOT/site/.build.log" 2>&1 || true
 rm -f "$tmp"
 for f in palettisation.html palettisation.json palettisation.w3d; do
-  [ -s "$ROOT/site/$f" ] || { echo "✗ site/$f manquant (voir site/.build.log)"; exit 1; }
+  [ -s "$RUN_ROOT/site/$f" ] || { echo "✗ site/$f manquant (voir site/.build.log)"; exit 1; }
 done
+if [ "$RUN_ROOT" != "$ROOT" ]; then
+  rm -f "$ROOT"/site/palettisation.{html,css,json,w3d}
+  cp "$RUN_ROOT"/site/palettisation.{html,css,json,w3d} "$ROOT/site/"
+fi
 fi
 rm -f "$ROOT/site/.build.log"
 # description de la page + page d'accueil (redirection) + vignette
