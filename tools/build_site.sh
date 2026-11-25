@@ -52,26 +52,29 @@ python3 - "$ROOT/site/palettisation.html" <<'PY'
 import re, sys
 p = sys.argv[1]
 s = open(p, encoding="utf-8").read()
-desc = ("<p><strong>Cellule de palettisation robotisée</strong> (Webots R2025a) : un cycle complet, de l'arrivée des colis "
-        "au stockage de la palette dans le hangar.<br><br>"
-        "ABB IRB 4600-40 + préhenseur à 12 ventouses, sas de formation de lots (2 colis), palette Euro 4 couches, "
-        "banderoleuse à plateau tournant, évacuation par barrière immatérielle avec muting, chariot élévateur.<br>"
-        "Clic gauche : orbite · clic droit : déplacement · molette : zoom · barre du bas : lecture / avance dans le temps.<br><br>"
-        "Code source : <a href='https://github.com/NicolasBrochen/palletizer-cell-webots'>github.com/NicolasBrochen/palletizer-cell-webots</a></p>")
+desc = ("<p><strong>Robotic palletizing cell</strong> (Webots R2025a): one full cycle, from case infeed "
+        "to pallet storage in the warehouse.<br><br>"
+        "ABB IRB 4600-40 + 12-cup vacuum gripper, lot-forming buffer (2 cases), 4-layer Euro pallet, "
+        "turntable stretch wrapper, exit through a light curtain with muting, forklift.<br>"
+        "Left click: orbit · right click: pan · mouse wheel: zoom · bottom bar: play / scrub the timeline.<br><br>"
+        "Source code: <a href='https://github.com/NicolasBrochen/palletizer-cell-webots'>github.com/NicolasBrochen/palletizer-cell-webots</a></p>")
 s = re.sub(r'<div class="description-container">.*?</div>', '<div class="description-container">' + desc + '</div>', s, flags=re.S)
-s = s.replace("Web Animation: ", "Animation 3D : ")
+s = re.sub(r"<h1>.*?</h1>", "<h1>3D animation: <strong>Robotic palletizing cell</strong></h1>", s, flags=re.S)
+s = re.sub(r"<title>.*?</title>", "<title>Robotic palletizing cell (Webots)</title>", s, flags=re.S)
+s = s.replace("<html xmlns=", "<html lang=\"en\" xmlns=")
+s = s.replace("If the animation is not loading correctly", "If the animation does not load correctly")
 open(p, "w", encoding="utf-8").write(s)
 PY
 cat > "$ROOT/site/index.html" <<'HTML'
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="refresh" content="0; url=palettisation.html">
-  <title>Cellule de palettisation (Webots)</title>
+  <title>Robotic palletizing cell (Webots)</title>
 </head>
 <body>
-  <p><a href="palettisation.html">Ouvrir l'animation 3D de la cellule de palettisation</a></p>
+  <p><a href="palettisation.html">Open the 3D animation of the palletizing cell</a></p>
 </body>
 </html>
 HTML
