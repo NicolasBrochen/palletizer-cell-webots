@@ -163,7 +163,7 @@ class CellPLC(Supervisor):
     def log(self, msg):
         line = "[%7.1f s] %s" % (self.getTime(), msg)
         print(line)
-        self.log_lines = (self.log_lines + [line])[-6:]
+        self.log_lines = (self.log_lines + [line])[-2:]
 
     def send(self, **m):
         self.tx.send(json.dumps(m))
@@ -182,22 +182,22 @@ class CellPLC(Supervisor):
         exiting = any(l.target == "P3" for l in self.loads)
         if not self.muting and exiting and m1 and not m2:
             self.muting, self.muting_t = True, 0.0
-            self.log("Muting LC1 activé (palette en sortie)")
+            self.log("LC1 muting on (pallet leaving the cell)")
         if self.muting:
             self.muting_t += self.dt
             if (not m1 and not m2) or self.muting_t > 20.0:
                 self.muting = False
-                self.log("Muting LC1 terminé")
+                self.log("LC1 muting off")
         self.set_lamp("LC1_LAMPE_MUTING", self.muting, [1, 1, 1])
         if self.fault is None:
             if self.estop:
-                self.trip("ARRÊT D'URGENCE actionné")
+                self.trip("EMERGENCY STOP pressed")
             elif self.door_open:
-                self.trip("Porte d'accès ouverte (interverrouillage)")
+                self.trip("Access door open (interlock)")
             elif lc1 and not self.muting:
-                self.trip("Barrière immatérielle LC1 (sortie palettes) franchie")
+                self.trip("Light curtain LC1 (pallet exit) interrupted")
             elif lc2:
-                self.trip("Barrière immatérielle LC2 (appro palettes) franchie")
+                self.trip("Light curtain LC2 (pallet supply) interrupted")
         self.lc_state = (lc1, lc2)
         self.set_lamp("LED_PORTE", not self.door_open, [0, 0.8, 0])
 
@@ -205,16 +205,16 @@ class CellPLC(Supervisor):
         self.fault = why
         self.send(cmd="hold")
         self.set_conveyors(False)
-        self.log("DÉFAUT SÉCURITÉ : " + why)
+        self.log("SAFETY STOP: " + why)
 
     def reset(self):
         lc1, lc2 = self.lc_state
         if self.fault is None:
             return
         if self.estop or self.door_open or (lc1 and not self.muting) or lc2:
-            self.log("Réarmement refusé : condition de sécurité toujours présente")
+            self.log("Reset refused: safety condition still active")
             return
-        self.log("Réarmement OK - reprise du cycle")
+        self.log("Reset OK - cycle resumed")
         self.fault = None
         self.send(cmd="release_hold")
         self.set_conveyors(True)
@@ -242,14 +242,14 @@ class CellPLC(Supervisor):
     def _scan_update(self, hits):
         if hits >= 1:
             if not self.scan_intrusion:
-                self.log("Scrutateur laser : présence détectée zone d'évacuation")
+                self.log("Laser scanner: person detected in the exit zone")
             self.scan_intrusion = True
             self.scan_clear_t = 0.0
         elif self.scan_intrusion:
             self.scan_clear_t += 2 * self.dt
             if self.scan_clear_t > 2.0:
                 self.scan_intrusion = False
-                self.log("Scrutateur laser : zone libre")
+                self.log("Laser scanner: exit zone clear")
 
     def running(self):
         return self.fault is None
@@ -314,7 +314,7 @@ class CellPLC(Supervisor):
         # arrivée colis : production amont simulée, B1 annonce la présence
         self.spawn_timer += self.dt
         if self.edge("B1_annonce_colis"):
-            self.log("B1 : colis annoncé en entrée convoyeur")
+            self.log("B1: case announced at conveyor infeed")
         accu_full = self.blocked("B5_accumulation") and self.prev.get("B5_t", 0) > 3.0
         self.prev["B5_t"] = self.prev.get("B5_t", 0) + self.dt if self.blocked("B5_accumulation") else 0
         if (self.spawn_timer > 4.0 and not self.blocked("B1_annonce_colis") and not accu_full
@@ -336,7 +336,7 @@ class CellPLC(Supervisor):
                 if self.b2_fall_t > 0.3:
                     self.se_closed = True
                     self.b2_fall_t = None
-                    self.log("Sas : 2 colis comptés, butée d'entrée fermée")
+                    self.log("Buffer: 2 cases counted, infeed stop raised")
 
     def lot_ready(self):
         if not (self.se_closed and self.lot_count >= 2 and self.blocked("B3_lot_colis1")
@@ -371,8 +371,8 @@ class CellPLC(Supervisor):
         self.mag_n -= 1
         if self.mag_n <= 1:
             self.mag_n = 10
-            self.log("Magasin palettes vides réapprovisionné (10 palettes)")
-        self.log("Palette vide n°%d distribuée par le magasin" % self.load_count)
+            self.log("Empty pallet magazine refilled (10 pallets)")
+        self.log("Empty pallet #%d dispensed by the magazine" % self.load_count)
 
     def plant_pallets(self):
         if not self.running():
@@ -409,8 +409,8 @@ class CellPLC(Supervisor):
             if nxt and self.station_load(nxt) is None and not (nxt == "P3" and self.scan_intrusion):
                 l.target = nxt
                 l.station = "transfert"
-                self.log("Palette n°%d : transfert vers %s" % (l.idx, {"P1": "poste palettisation",
-                         "P2": "banderoleuse", "P3": "poste d'évacuation"}[nxt]))
+                self.log("Pallet #%d: transfer to %s" % (l.idx, {"P1": "palletizing station",
+                         "P2": "stretch wrapper", "P3": "exit station"}[nxt]))
         # palette arrivée en P2 -> banderolage
         l2 = self.station_load("P2")
         if l2 and l2.station == "P2" and l2.state == "pleine" and self.wrap is None:
@@ -425,30 +425,30 @@ class CellPLC(Supervisor):
             e = m.get("evt")
             if e == "ready":
                 self.robot_ready = True
-                self.log("Robot prêt (position d'attente)")
+                self.log("Robot ready (home position)")
             elif e == "picked":
                 for b in self.job["lot"]:
                     self.boxes.remove(b)
                 # un colis déjà présent devant B2 (en attente contre la butée) compte pour le lot suivant
                 self.lot_count = 1 if self.blocked("B2_comptage_sas") else 0
                 self.se_closed = False
-                self.log("Lot n°%d prélevé - réouverture du sas" % self.job["id"])
+                self.log("Lot #%d picked - buffer reopened" % self.job["id"])
             elif e == "placed":
                 l = self.job["load"]
                 for b in self.job["lot"]:
                     p = b["node"].getPosition()
                     l.items.append((b["node"], p[0] - l.x, p[1] - l.y, p[2] - l.z, 0.0))
                 l.lots += 1
-                self.log("Lot déposé : palette n°%d couche %d/%d (%d/%d lots)" % (
+                self.log("Lot placed: pallet #%d layer %d/%d (%d/%d lots)" % (
                     l.idx, (l.lots - 1) // LOTS_PER_LAYER + 1, LAYERS, l.lots, LAYERS * LOTS_PER_LAYER))
                 if l.lots >= LAYERS * LOTS_PER_LAYER:
                     l.state = "pleine"
-                    self.log("Palette n°%d complète (%d colis)" % (l.idx, 2 * l.lots))
+                    self.log("Pallet #%d complete (%d cases)" % (l.idx, 2 * l.lots))
             elif e == "done":
                 self.robot_busy = False
                 self.job = None
             elif e == "error":
-                self.log("ROBOT : " + m.get("msg", ""))
+                self.log("ROBOT: " + m.get("msg", ""))
         if not self.running() or not self.robot_ready or self.robot_busy:
             return
         l = self.station_load("P1")
@@ -469,8 +469,8 @@ class CellPLC(Supervisor):
                   pick=[px, CONV_Y, CONV_Z + BOX[2], 0.0],
                   place=[l.x, l.y + LOT_HALF_Y[half], top, 0.0],
                   clear_z=max(1.45, top + 0.15), box_h=BOX[2])
-        self.log("Ordre robot : lot n°%d -> palette n°%d couche %d %s" % (
-            self.job_id, l.idx, layer + 1, "nord" if half == 0 else "sud"))
+        self.log("Robot order: lot #%d -> pallet #%d layer %d %s" % (
+            self.job_id, l.idx, layer + 1, "north" if half == 0 else "south"))
 
     # ================================================================ banderoleuse
     def start_wrap(self, l):
@@ -481,7 +481,7 @@ class CellPLC(Supervisor):
                              'PBRAppearance { baseColor 0.85 0.9 0.95 transparency 0.55 roughness 0.1 metalness 0 } '
                              'geometry Box { size 0.82 1.22 1 } } ] }' % (d, *pos), pos)
         self.wrap = dict(load=l, t=0.0, ang=0.0, top=top, zc=PAL_Z + 0.25)
-        self.log("Banderolage palette n°%d démarré" % l.idx)
+        self.log("Wrapping pallet #%d started" % l.idx)
 
     def plant_wrap(self):
         """Banderoleuse à plateau tournant : la charge tourne, le chariot porte-bobine monte puis redescend."""
@@ -516,7 +516,7 @@ class CellPLC(Supervisor):
                 if w["zc"] <= z_low + 1e-3:
                     l.state = "banderolee"
                     self.wrap = None
-                    self.log("Banderolage palette n°%d terminé" % l.idx)
+                    self.log("Wrapping pallet #%d done" % l.idx)
         l.th = w["ang"] if self.wrap else 0.0
         l.place()
         self.n_plateau.getField("rotation").setSFRotation(rot_z(l.th))
@@ -562,11 +562,11 @@ class CellPLC(Supervisor):
                     old = self.stored.pop(0)
                     self.remove_load(old)
                     free = [i for i, u in enumerate(self.spot_used) if not u]
-                    self.log("Hangar plein : palette la plus ancienne expédiée")
+                    self.log("Storage full: oldest pallet shipped")
                 fk["plan"] = self.fork_plan(free[0])
                 fk["load"] = l3
                 fk["state"] = "mission"
-                self.log("Chariot : mission prise palette n°%d -> emplacement hangar %d" % (l3.idx, free[0] + 1))
+                self.log("Forklift: mission pallet #%d -> storage slot %d" % (l3.idx, free[0] + 1))
             return
         if self.fork_alert == "STOP":
             return
@@ -598,7 +598,7 @@ class CellPLC(Supervisor):
             l.z = PAL_Z + FORK_LIFT
             l.station = "chariot"
             l.state = "transport"
-            self.log("Chariot : palette n°%d levée" % l.idx)
+            self.log("Forklift: pallet #%d lifted" % l.idx)
             done = True
         elif act[0] == "drop":
             l = fk["load"]
@@ -609,7 +609,7 @@ class CellPLC(Supervisor):
             l.spot = act[1]
             self.stored.append(l)
             self.n_palettes_done += 1
-            self.log("Chariot : palette n°%d déposée en stockage (emplacement %d)" % (l.idx, act[1] + 1))
+            self.log("Forklift: pallet #%d stored (slot %d)" % (l.idx, act[1] + 1))
             fk["load"] = None
             done = True
         elif act[0] == "end":
@@ -650,15 +650,15 @@ class CellPLC(Supervisor):
         for c in keys:
             if c == "E":
                 self.estop = not self.estop
-                self.log("Arrêt d'urgence %s" % ("ENFONCÉ" if self.estop else "déverrouillé"))
+                self.log("Emergency stop %s" % ("PRESSED" if self.estop else "released"))
             elif c == "D":
                 self.door_open = not self.door_open
-                self.log("Porte d'accès %s" % ("ouverte" if self.door_open else "fermée"))
+                self.log("Access door %s" % ("open" if self.door_open else "closed"))
             elif c == "R":
                 self.reset()
             elif c == "S":
                 self.cycle_stop = not self.cycle_stop
-                self.log("Arrêt fin de cycle demandé" if self.cycle_stop else "Redémarrage production")
+                self.log("End-of-cycle stop requested" if self.cycle_stop else "Production restarted")
             elif c == "P":
                 self.toggle_pedestrian()
 
@@ -668,11 +668,11 @@ class CellPLC(Supervisor):
                                              'controllerArgs [ "--trajectory=%s" "--speed=0.9" ] '
                                              'shirtColor 1 0.55 0 enableBoundingObject TRUE }' % PED_PATH)
             self.ped = self.getFromDef("PIETON")
-            self.log("Piéton entré dans la zone chariot / évacuation")
+            self.log("Pedestrian entered the forklift / exit zone")
         else:
             self.ped.remove()
             self.ped = None
-            self.log("Piéton sorti")
+            self.log("Pedestrian left")
 
     def plant_door(self):
         tgt = math.pi / 2 if self.door_open else 0.0
@@ -695,31 +695,12 @@ class CellPLC(Supervisor):
         self.beams["LC1"].getField("translation").setSFVec3f([0, 0, -10 if self.muting else 0])
 
     def hmi(self):
-        st = "DÉFAUT SÉCURITÉ" if self.fault else ("ARRÊT FIN DE CYCLE" if self.cycle_stop else "AUTO - PRODUCTION")
+        st = "SAFETY STOP" if self.fault else ("END-OF-CYCLE STOP" if self.cycle_stop else "AUTO - PRODUCTION")
         l1 = self.station_load("P1")
-        pal_txt = "P1: palette n°%d  %d/%d lots" % (l1.idx, l1.lots, LAYERS * LOTS_PER_LAYER) if l1 else "P1: attente palette"
-        lines = [
-            "CELLULE DE PALETTISATION - %s" % st,
-            "t = %.0f s   colis créés : %d   palettes stockées : %d" % (self.getTime(), self.box_count,
-                                                                         self.n_palettes_done),
-            "%s   | sas : %d colis, butée %s | robot : %s" % (pal_txt, self.lot_count,
-                                                             "fermée" if self.se_closed else "ouverte",
-                                                             "en cycle" if self.robot_busy else "attente"),
-            "Banderoleuse : %s | Chariot : %s (%s) | magasin : %d pal." % (
-                "en cours" if self.wrap else "libre", self.fork["state"], self.fork_alert, self.mag_n),
-            "Sécurité : AU %s | porte %s | LC1 %s%s | LC2 %s | scrutateur %s" % (
-                "ENFONCÉ" if self.estop else "ok", "OUVERTE" if self.door_open else "fermée",
-                "COUPÉE" if self.lc_state[0] else "ok", " (muting)" if self.muting else "",
-                "COUPÉE" if self.lc_state[1] else "ok", "INTRUSION" if self.scan_intrusion else "libre"),
-        ]
-        if self.fault:
-            lines.append(">>> %s - corriger puis R pour réarmer" % self.fault)
-        lines.append("Touches : E=AU  D=porte  R=réarmement  P=piéton  S=arrêt fin de cycle")
-        col = 0xFF4040 if self.fault else 0xFFFFFF
-        for i, s in enumerate(lines):
-            self.setLabel(i, s, 0.22, 0.01 + 0.03 * i, 0.055, col if i in (0, 5) else 0xFFFFFF, 0.0, "Arial")
+        pal_txt = "P1: pallet #%d  %d/%d lots" % (l1.idx, l1.lots, LAYERS * LOTS_PER_LAYER) if l1 else "P1: waiting for pallet"
+        # surimpression réduite au journal : les 2 derniers événements (en jaune, en bas à gauche)
         for i, s in enumerate(self.log_lines):
-            self.setLabel(10 + i, s, 0.01, 0.80 + 0.03 * i, 0.05, 0xFFE080, 0.0, "Arial")
+            self.setLabel(i, s, 0.01, 0.83 + 0.035 * i, 0.06, 0xFFE080, 0.0, "Arial")
         # écran du pupitre
         d = self.display
         d.setColor(0x202830)
@@ -731,9 +712,9 @@ class CellPLC(Supervisor):
         d.drawText(st, 8, 6)
         d.setFont("Arial", 11, True)
         yy = 36
-        for s in [pal_txt, "Sas : %d colis" % self.lot_count, "Robot : %s" % ("cycle" if self.robot_busy else "attente"),
-                  "Palettes stockées : %d" % self.n_palettes_done, "Chariot : %s" % self.fork["state"],
-                  (self.fault or "Sécurités OK")[:44]]:
+        for s in [pal_txt, "Buffer: %d cases" % self.lot_count, "Robot: %s" % ("cycle" if self.robot_busy else "idle"),
+                  "Pallets stored: %d" % self.n_palettes_done, "Forklift: %s" % self.fork["state"],
+                  (self.fault or "Safety OK")[:44]]:
             d.drawText(s, 8, yy)
             yy += 22
 
@@ -741,7 +722,7 @@ class CellPLC(Supervisor):
     def run(self):
         self.step(self.dt_ms)
         self.lc_state = (False, False)
-        self.log("Automate de cellule démarré")
+        self.log("Cell PLC started")
         self.send(cmd="speed", value=1.0)
         frame = 0
         while self.step(self.dt_ms) != -1:

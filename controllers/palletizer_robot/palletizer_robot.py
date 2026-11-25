@@ -168,7 +168,7 @@ class Palletizer(Supervisor):
 
     def grip(self, defs):
         if self.presence.getValue() > 0.2:
-            self.send(evt="error", msg="Aucun colis détecté sous le préhenseur")
+            self.send(evt="error", msg="No case detected under the gripper")
         P, R = self.tool_pose()
         Rt = mat_T(R)
         self.held = []
@@ -252,7 +252,7 @@ class Palletizer(Supervisor):
             tgt = item[1]
             q1 = ik_down(tgt[0], tgt[1], tgt[2], tgt[3], TOOL_LEN, self.q_cmd)
             if q1 is None:
-                self.send(evt="error", msg="Cible hors d'atteinte %s" % tgt)
+                self.send(evt="error", msg="Target out of reach %s" % tgt)
                 q1 = self.q_cmd
             self.cur = JointSeg(self.q_cmd, q1, self.override)
             self.cur_tcp = tgt

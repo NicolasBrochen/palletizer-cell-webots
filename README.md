@@ -1,153 +1,161 @@
-# Cellule de palettisation robotisée — Webots R2025a
+**English** · [Français](README.fr.md)
 
-Cellule installée dans un hangar logistique. Un robot palettiseur à ventouses prend les colis arrivant par convoyeur et les pose sur une palette Euro.
-Un sas forme les lots. La palette pleine est banderolée, puis un chariot élévateur la prend et la dépose dans la zone de stockage du hangar.
+# Robotic palletizing cell — Webots R2025a
 
-**▶ [Animation 3D interactive dans le navigateur](https://nicolasbrochen.github.io/palletizer-cell-webots/)** (GitHub Pages, sans installer Webots) · [vidéo d'un cycle complet, accélérée ×4 (MP4)](docs/palettisation.mp4)
+A palletizing cell inside a logistics warehouse. A vacuum-gripper robot picks the cases arriving on a conveyor and stacks
+them on a Euro pallet. A buffer forms the lots. The full pallet is stretch-wrapped, then a forklift picks it up and drops it
+in the warehouse storage area.
 
-[![Un cycle complet : formation des lots, palettisation, banderolage, évacuation et stockage par le chariot](docs/palettisation.gif)](docs/palettisation.mp4)
+**▶ [Interactive 3D animation in the browser](https://nicolasbrochen.github.io/palletizer-cell-webots/)** (GitHub Pages, no Webots needed) · [video of one full cycle, 4× speed (MP4)](docs/palettisation.mp4)
 
-| Prise d'un lot par le préhenseur à ventouses | Banderoleuse à plateau tournant |
+[![One full cycle: lot forming, palletizing, wrapping, exit and storage by the forklift](docs/palettisation.gif)](docs/palettisation.mp4)
+
+| A lot picked by the vacuum gripper | Turntable stretch wrapper |
 |---|---|
-| [![Prise d'un lot](docs/prehenseur.jpg)](docs/prise_lot.mp4) | [![Banderolage](docs/banderoleuse.jpg)](docs/banderolage.mp4) |
+| [![Lot pick](docs/prehenseur.jpg)](docs/prise_lot.mp4) | [![Wrapping](docs/banderoleuse.jpg)](docs/banderolage.mp4) |
 
-## Visualiser sans Webots
+## Viewing without Webots
 
-- **Animation 3D interactive** : [nicolasbrochen.github.io/palletizer-cell-webots](https://nicolasbrochen.github.io/palletizer-cell-webots/).
-  C'est un export HTML5 de Webots d'un cycle complet (3 min 38 s simulées) : on peut tourner autour de la scène, zoomer
-  et avancer dans le temps. Les fichiers sont dans [`site/`](site/), publiés sur GitHub Pages depuis la branche `gh-pages`
+- **Interactive 3D animation**: [nicolasbrochen.github.io/palletizer-cell-webots](https://nicolasbrochen.github.io/palletizer-cell-webots/).
+  It is a Webots HTML5 export of one full cycle (3 min 38 s of simulated time): you can orbit the scene, zoom and scrub
+  the timeline. The files live in [`site/`](site/) and are published on GitHub Pages from the `gh-pages` branch
   (`git subtree push --prefix site origin gh-pages`).
-- **Vidéos** : [`docs/`](docs/) contient le cycle complet et deux gros plans (prise d'un lot, banderolage).
-- **Reconstruire** : `tools/build_site.sh` refait l'animation, et `tools/build_media.sh` refait les vidéos, le GIF et les images
-  (il faut un affichage, car Webots fait le rendu des vidéos).
-  Sous WSL, les scripts utilisent automatiquement **Webots Windows** s'il est installé avec un Python Windows
-  (`winget install -e --id Python.Python.3.12`). Le rendu passe alors directement par le GPU, sans la couche WSLg :
-  sur une machine avec GPU NVIDIA, un essai de 45 s simulées est passé de 26 s à 11 s.
-  Le projet est recopié dans `%LOCALAPPDATA%\Temp\palettiseur-build`. `WEBOTS_MODE=linux` force le Webots Linux
-  (voir [`tools/webots_env.sh`](tools/webots_env.sh)).
+- **Videos**: [`docs/`](docs/) holds the full cycle and two close-ups (lot pick, wrapping).
+- **Rebuilding**: `tools/build_site.sh` rebuilds the animation, and `tools/build_media.sh` rebuilds the videos, GIF and
+  stills (a display is required, because Webots renders the videos).
+  Under WSL, both scripts automatically use **Webots for Windows** when it is installed together with a Windows Python
+  (`winget install -e --id Python.Python.3.12`). Rendering then goes straight to the GPU, without the WSLg layer:
+  on a machine with an NVIDIA GPU, a 45 s simulated test went from 26 s to 11 s, and the animation build from about
+  10 min to 40 s. The project is copied to `%LOCALAPPDATA%\Temp\palettiseur-build`. `WEBOTS_MODE=linux` forces the
+  Linux Webots (see [`tools/webots_env.sh`](tools/webots_env.sh)). Keep the Webots window visible while the videos
+  record: Windows loses the capture when the window is covered, and the script stops on black frames.
 
-## Lancer dans Webots
+## Running in Webots
 
 ```
 webots worlds/palettisation.wbt
 ```
 
-## Modèles
+## Models
 
-**Issus de la bibliothèque officielle Webots**
+**From the official Webots library**
 
-| Élément | PROTO |
+| Item | PROTO |
 |---|---|
-| Robot | `Irb4600-40` (ABB IRB 4600/40, 6 axes, charge 40 kg). L'axe 4 est bloqué et l'outil reste vertical, comme sur un palettiseur |
-| Palettes | `WoodenPallet` 1200×800×144 (palette Euro) et `WoodenPalletStack` pour le magasin |
-| Colis | `CardboardBox` 400×600×300 (4 couches de 4 colis) |
-| Chariot élévateur et piéton | `Forklift`, `Pedestrian` |
-| Matériaux | `RoughConcrete`, `CorrugatedMetal`, `GalvanizedMetal`, `Rubber` |
+| Robot | `Irb4600-40` (ABB IRB 4600/40, 6 axes, 40 kg payload). Axis 4 is locked and the tool stays vertical, like a palletizer |
+| Pallets | `WoodenPallet` 1200×800×144 (Euro pallet) and `WoodenPalletStack` for the magazine |
+| Cases | `CardboardBox` 400×600×300 (4 layers of 4 cases) |
+| Forklift and pedestrian | `Forklift`, `Pedestrian` |
+| Materials | `RoughConcrete`, `CorrugatedMetal`, `GalvanizedMetal`, `Rubber` |
 
-**Construits pour ce projet**
+**Built for this project**
 
-Aucun modèle libre et exploitable n'existe pour ces équipements : ce qu'on trouve en ligne est payant ou sous licence restreinte.
-Ils sont donc modélisés de façon détaillée dans `tools/gen_world.py` et `protos/`.
+No free, usable model exists for this equipment: what can be found online is paid or under a restrictive license.
+They are modelled in detail in `tools/gen_world.py` and `protos/`.
 
-| Élément | Construction |
+| Item | Construction |
 |---|---|
-| **Carter de protection** (`protos/GuardBay.proto`) | Repris des projets *praline-cell* et *robot-cell-webots* (`SafetyFence.proto`) : profilés alu 45×45 rainurés, polycarbonate clair, joints noirs, lisse basse et lisse intermédiaire, double lisse haute, platines au sol, hauteur 2,2 m |
-| **Préhenseur à ventouses** | Bride ISO 9409, changeur d'outil, poutre en profilé 45×90 et 3 poutres porte-ventouses. 12 ventouses à soufflet 1,5 pli (lèvre bleue) sur compensateurs de niveau. Éjecteur de vide avec silencieux, vacuostat, tuyaux PU, capteur de présence produit. Surface 640×840 mm pour un lot de 2 colis |
-| **Convoyeurs à bande** | Châssis en profilés alu, bande caoutchouc animée, tambours, retour de bande, pieds réglables, guides inox réglables, motoréducteur, cellules et réflecteurs |
-| **Fermeuse de cartons** | Machine amont, d'où sortent les colis |
-| **Ligne palettes** | Convoyeurs à chaînes bas (3 brins sous les semelles, chaînes à 0,10 m). Le chariot prend la palette en passant les fourches entre les brins. Motoréducteurs et carters de pignons |
-| **Banderoleuse automatique à plateau tournant** | Plateau de Ø 2 m avec convoyeur à chaînes intégré, mât de 2,6 m (charge 1,44 m de haut), chariot porte-bobine avec pré-étirage, armoire et pupitre. Le plateau fait tourner la palette pendant que le chariot monte |
-| **Hangar** | Bardage, soubassement béton, poteaux de charpente protégés, fermes et luminaires suspendus, portes de quai, racks à palettes (bleu et orange) chargés, zone de stockage au sol sur longrines, allées marquées |
+| **Safety guarding** (`protos/GuardBay.proto`) | Taken from the *praline-cell* and *robot-cell-webots* projects (`SafetyFence.proto`): 45×45 slotted aluminium profiles, clear polycarbonate, black seals, kick rail and middle rail, double top rail, floor plates, 2.2 m high |
+| **Vacuum gripper** | ISO 9409 flange, tool changer, 45×90 profile beam and 3 cup-carrying beams. 12 bellows suction cups (1.5 folds, blue lip) on level compensators. Vacuum ejector with silencer, vacuum switch, PU hoses, product presence sensor. 640×840 mm footprint for a lot of 2 cases |
+| **Belt conveyors** | Aluminium-profile frame, animated rubber belt, drums, belt return, adjustable feet, adjustable stainless guides, gearmotor, photocells and reflectors |
+| **Case sealer** | Upstream machine the cases come out of |
+| **Pallet line** | Low chain conveyors (3 strands under the bottom boards, chains at 0.10 m). The forklift picks the pallet by sliding its forks between the strands. Gearmotors and sprocket guards |
+| **Automatic turntable stretch wrapper** | Ø 2 m turntable with a built-in chain conveyor, 2.6 m mast (load 1.44 m high), film carriage with pre-stretch, cabinet and operator panel. The turntable spins the pallet while the carriage rises |
+| **Warehouse** | Cladding, concrete base wall, protected building columns, roof trusses and hanging lights, dock doors, loaded pallet racks (blue and orange), floor storage on rails, marked aisles |
 
-La géométrie statique est fusionnée par matériau en `IndexedFaceSet`, pour garder la simulation proche du temps réel.
+Static geometry is merged per material into `IndexedFaceSet` nodes, to keep the simulation close to real time.
 
-## Déroulement du cycle
+## Cycle
 
-1. **Arrivée des colis** : la cellule **B1** annonce chaque colis à l'entrée du convoyeur.
-   **B5** surveille l'accumulation ; si elle est pleine, l'arrivée des colis s'arrête.
-2. **Sas de formation des lots** : **B2** compte les colis qui entrent dans le sas. Au 2ᵉ colis, la butée
-   d'entrée (vérin) se lève. **B3** et **B4** confirment que le lot est complet contre la butée fixe.
-3. **Robot** : l'automate envoie l'ordre `pick_place`. Le robot descend en mouvement linéaire, fait le vide,
-   remonte puis transfère le lot (interpolation articulaire). Il le dépose sur la demi-palette nord, puis sud, couche par couche.
-   Le sas se rouvre dès que le lot est prélevé.
-4. **Palette pleine** (8 lots) : transfert par chaînes vers la **banderoleuse à plateau tournant**.
-   Le plateau tourne à 12 tr/min : tours de pied, montée du chariot, tours de tête, puis arrêt indexé pour réaligner les chaînes.
-5. **Évacuation** : la palette sort par la barrière immatérielle **LC1**. Le **muting** est activé par la séquence M1 puis M2.
-   Elle arrive au poste P3, hors du grillage.
-6. **Chariot élévateur** : il entre les fourches dans les passages de la palette, la lève de 3 cm, recule,
-   puis rejoint l'allée vers la zone de stockage du hangar. Il la dépose sur des longrines (stockage au sol) et revient en attente.
-   Quand le hangar est plein, la palette la plus ancienne est expédiée.
+1. **Case infeed**: photocell **B1** announces each case at the conveyor infeed.
+   **B5** watches the accumulation; when it is full, the case supply stops.
+2. **Lot-forming buffer**: **B2** counts the cases entering the buffer. On the 2nd case, the infeed stop (pneumatic
+   cylinder) rises. **B3** and **B4** confirm that the lot is complete against the fixed end stop.
+3. **Robot**: the PLC sends the `pick_place` order. The robot moves down linearly, makes the vacuum, lifts, then carries
+   the lot (joint interpolation). It places it on the north half-pallet, then the south one, layer by layer.
+   The buffer reopens as soon as the lot is picked.
+4. **Full pallet** (8 lots): chain transfer to the **turntable stretch wrapper**.
+   The turntable spins at 12 rpm: bottom wraps, carriage rise, top wraps, then an indexed stop that realigns the chains.
+5. **Exit**: the pallet leaves through light curtain **LC1**. **Muting** is triggered by the M1 then M2 sequence.
+   It reaches station P3, outside the guarding.
+6. **Forklift**: it slides its forks into the pallet openings, lifts it by 3 cm, backs out, then follows the aisle to the
+   warehouse storage area. It drops it on floor rails and returns to its waiting position.
+   When storage is full, the oldest pallet is shipped.
 
-## Capteurs
+## Sensors
 
-| Repère | Type | Rôle |
+| Tag | Type | Role |
 |---|---|---|
-| B1 | Cellule photo-électrique | Annonce d'un colis en entrée de convoyeur |
-| B5 | Cellule | Accumulation pleine sur le convoyeur d'entrée |
-| B2 | Cellule | Comptage des colis qui entrent dans le sas |
-| B3, B4 | Cellules | Lot complet en butée (colis 1 et colis 2) |
-| S_P0…S_P3 | Cellules | Présence de palette au magasin, à la palettisation, à la banderoleuse et à l'évacuation |
-| Capteur préhenseur | Capteur de proximité | Présence d'un colis sous les ventouses |
+| B1 | Photoelectric cell | Case announced at conveyor infeed |
+| B5 | Photocell | Infeed conveyor accumulation full |
+| B2 | Photocell | Counts the cases entering the buffer |
+| B3, B4 | Photocells | Lot complete against the stop (case 1 and case 2) |
+| S_P0…S_P3 | Photocells | Pallet present at the magazine, palletizing station, wrapper and exit |
+| Gripper sensor | Proximity sensor | Case present under the suction cups |
 
-## Sécurités
+## Safety
 
-| Dispositif | Norme de référence | Effet |
+| Device | Reference standard | Effect |
 |---|---|---|
-| Carter périmétrique de 2,2 m (profilés alu + polycarbonate), garde au sol de 0,12 m | ISO 14120 / ISO 13857 | Protection fixe |
-| Tunnel en polycarbonate sur l'entrée du convoyeur | ISO 13857 | Empêche d'atteindre le robot par l'ouverture du convoyeur |
-| Porte d'accès avec interrupteur à interverrouillage (LED) | ISO 14119 | Ouverture → arrêt du robot, des convoyeurs et de la banderoleuse ; réarmement manuel obligatoire |
-| **LC1** : barrière immatérielle de sortie (9 faisceaux) + muting M1/M2 + lampe de muting | IEC 61496 / IEC 62046 | Laisse passer la palette, mais coupe tout si une personne la franchit |
-| **LC2** : barrière immatérielle côté réapprovisionnement des palettes vides | IEC 61496 | Franchissement → arrêt de sécurité |
-| 2 scrutateurs laser (côtés est et ouest de la zone d'évacuation) | IEC 61496-3 | Présence détectée → transfert de sortie et prise par le chariot suspendus ; reprise automatique 2 s après le dégagement |
-| Détection de piéton embarquée sur le chariot | — | Ralenti sous 6 m, arrêt sous 3,5 m |
-| Arrêts d'urgence (pupitre, sortie, convoyeur, banderoleuse) | ISO 13850 | Arrêt et défaut mémorisé |
-| Colonnes lumineuses (vert = auto, orange = muting, intrusion ou arrêt fin de cycle, rouge = défaut) | IEC 60204-1 | Signalisation |
-| Marquage au sol : zone de danger jaune et noire, allée chariots bleue, allée piétons verte | ISO 7010 | |
+| 2.2 m perimeter guarding (aluminium profiles + polycarbonate), 0.12 m floor gap | ISO 14120 / ISO 13857 | Fixed guard |
+| Polycarbonate tunnel over the conveyor infeed | ISO 13857 | Prevents reaching the robot through the conveyor opening |
+| Access door with interlock switch (LED) | ISO 14119 | Opening → robot, conveyors and wrapper stop; manual reset required |
+| **LC1**: exit light curtain (9 beams) + M1/M2 muting + muting lamp | IEC 61496 / IEC 62046 | Lets the pallet through, but stops everything if a person crosses it |
+| **LC2**: light curtain on the empty-pallet supply side | IEC 61496 | Crossing → safety stop |
+| 2 laser scanners (east and west sides of the exit zone) | IEC 61496-3 | Person detected → exit transfer and forklift pick suspended; automatic restart 2 s after the zone clears |
+| Pedestrian detection on the forklift | — | Slows below 6 m, stops below 3.5 m |
+| Emergency stops (panel, exit, conveyor, wrapper) | ISO 13850 | Stop and latched fault |
+| Stack lights (green = auto, orange = muting, intrusion or end-of-cycle stop, red = fault) | IEC 60204-1 | Signalling |
+| Floor marking: yellow and black danger zone, blue forklift aisle, green pedestrian aisle | ISO 7010 | |
 
-Arrêt de sécurité : le robot passe en **arrêt de catégorie 2** (il garde sa position, asservi).
-Les convoyeurs, transferts et la banderoleuse s'arrêtent. Le défaut reste mémorisé jusqu'au **réarmement R**,
-qui est refusé tant que la cause est présente.
+Safety stop: the robot goes into a **category 2 stop** (it holds its position, under servo control).
+Conveyors, transfers and the wrapper stop. The fault stays latched until the **R reset**, which is refused while the
+cause is still present.
 
-## Commandes clavier (cliquer d'abord dans la vue 3D)
+## Keyboard commands (click in the 3D view first)
 
-| Touche | Action |
+| Key | Action |
 |---|---|
-| `E` | Arrêt d'urgence (enfoncer / déverrouiller) |
-| `D` | Ouvrir / fermer la porte d'accès |
-| `R` | Réarmement |
-| `P` | Faire entrer / sortir un piéton : il traverse l'allée du chariot, passe devant les scrutateurs et franchit LC1 |
-| `S` | Arrêt fin de cycle / redémarrage |
+| `E` | Emergency stop (press / release) |
+| `D` | Open / close the access door |
+| `R` | Reset |
+| `P` | Send a pedestrian in / out: they cross the forklift aisle, pass in front of the scanners and cross LC1 |
+| `S` | End-of-cycle stop / restart |
 
-On peut aussi envoyer ces commandes par script : écrire la lettre (par exemple `R`) dans le champ `customData` du robot « automate cellule ».
-Le chariot élévateur, qui travaille hors de la cellule, n'est pas arrêté par un défaut de la cellule : il est protégé par sa propre détection de piétons.
+These commands can also be sent by script: write the letter (for example `R`) into the `customData` field of the
+"automate cellule" robot.
+The forklift, which works outside the cell, is not stopped by a cell fault: it is protected by its own pedestrian
+detection.
 
-L'état de la cellule s'affiche en surimpression et sur l'écran du pupitre (Display « IHM »).
+The 3D view overlays only the PLC's **last two events** (in yellow, in English).
+The detailed cell status is shown on the operator panel screen (Display "IHM").
 
-## Architecture logicielle
+## Software architecture
 
 ```
 controllers/
-  cell_plc/cell_plc.py                 automate de cellule (superviseur)
-      ├─ partie COMMANDE : décisions prises uniquement à partir des capteurs Webots
-      └─ partie OPÉRATIVE simulée : bandes, butée, chaînes palettes, plateau de banderolage, chariot
-  palletizer_robot/palletizer_robot.py contrôleur du robot (trajectoires, vide/ventouses)
-  palletizer_robot/irb4600_kin.py      IK analytique de l'IRB 4600, outil vertical, sans dépendance
-  animation_recorder/, media_recorder/  enregistreurs (animation HTML5, vidéos du README)
-tools/gen_world.py                     génère worlds/palettisation.wbt (implantation paramétrée)
-tools/build_site.sh                    animation 3D HTML5 -> site/ (GitHub Pages)
-tools/build_media.sh                   vidéos, GIF et images -> docs/
+  cell_plc/cell_plc.py                 cell PLC (supervisor)
+      ├─ CONTROL part: decisions taken only from the Webots sensors
+      └─ simulated PLANT part: belts, stop, pallet chains, wrapper turntable, forklift
+  palletizer_robot/palletizer_robot.py robot controller (trajectories, vacuum/suction cups)
+  palletizer_robot/irb4600_kin.py      analytical IRB 4600 IK, vertical tool, no dependency
+  animation_recorder/, media_recorder/  recorders (HTML5 animation, README videos)
+tools/gen_world.py                     generates worlds/palettisation.wbt (parametric layout)
+tools/build_site.sh                    HTML5 3D animation -> site/ (GitHub Pages)
+tools/build_media.sh                   videos, GIF and stills -> docs/
+tools/webots_env.sh                    Webots selection (Windows under WSL, else Linux)
 ```
 
-L'automate et le robot communiquent en JSON via Emitter/Receiver (canaux 1 et 2).
+The PLC and the robot exchange JSON messages through Emitter/Receiver (channels 1 and 2).
 
-Pour modifier l'implantation, éditer `tools/gen_world.py`, puis lancer `python3 tools/gen_world.py`. Le carter se règle travée par travée avec `protos/GuardBay.proto`.
+To change the layout, edit `tools/gen_world.py`, then run `python3 tools/gen_world.py`. The guarding is set bay by bay
+with `protos/GuardBay.proto`.
 
 ## Simplifications
 
-- Les colis, palettes et le chariot sont déplacés de façon cinématique par le superviseur, sans physique de contact.
-  C'est un choix de robustesse : la cellule se comporte de façon déterministe.
-  Le robot, lui, est piloté par ses vrais moteurs, en suivant la trajectoire calculée.
-- La prise par ventouses est simulée : quand le vide est établi, les colis sont solidaires du TCP.
-- Les scrutateurs laser sont représentés par des éventails de 31 faisceaux de distance, sans lidar à rendu GPU,
-  pour garder le temps réel.
-- La détection de piéton du chariot se fait avec la position connue par le superviseur, à la manière d'un système à étiquettes UWB.
+- Cases, pallets and the forklift are moved kinematically by the supervisor, without contact physics.
+  This is a robustness choice: the cell behaves deterministically.
+  The robot itself is driven by its real motors, following the computed trajectory.
+- Vacuum gripping is simulated: once the vacuum is established, the cases are attached to the TCP.
+- The laser scanners are modelled as fans of 31 distance beams, without a GPU-rendered lidar, to keep real time.
+- The forklift's pedestrian detection uses the position known to the supervisor, like a UWB tag system.
